@@ -3,19 +3,20 @@ const collection = require("../models/question");
 
 //get
 const get = asyncHandler(async (req, res) => {
-  try {
-    const data = await collection.find();
-    res
-      .status(201)
-      .json({ message: "Data gotten successfully", data });
-
-    if (!data) {
-      res.status(404).json({ message: "data doesn't gotten" });
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const pageSize = parseInt(req.query.pageSize) || 10;
+      const startIndex = (page - 1) * pageSize;
+      
+      const data = await collection.find().skip(startIndex).limit(pageSize);
+      
+      res.status(200).json({ message: "Data fetched successfully", data });
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: "Internal server error" });
     }
-  } catch (error) {
-    console.log(error);
-  }
-});
+  });
+  
 
 //single get
 const singleGet = asyncHandler(async (req, res) => {

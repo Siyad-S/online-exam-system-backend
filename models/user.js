@@ -7,8 +7,9 @@ const schema = mongoose.Schema({
     email: {
         type: String,
         required: true
-    }
+    },
+    answers: []
 })
 
-const userCollection = mongoose.Model("user", schema)
+const userCollection = mongoose.model("user", schema)
 module.exports = userCollection
