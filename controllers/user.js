@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
-const users = require("../models/user");
+const userCollection = require("../models/user");
 const questions = require("../models/question");
+const { log } = require("console");
 
 //post
 const post = asyncHandler(async (req, res) => {
@@ -25,59 +26,59 @@ const post = asyncHandler(async (req, res) => {
 const storeMark = asyncHandler(async (req, res) => {
   try {
     const { answers } = req.body;
+    console.log(answers);
     const id = req.params.id;
 
-    const questionsData = await questions
-      .aggregate([
-        {
-          $match: { _id: { $in: answers.map((answer) => answer.questionId) } },
-        },
-      ])
-      .toArray();
+    //   const answersData = Object.values(answers);
+    //   console.log(answersData);
+    const questionsData = await questions.find();
     let mark = 0;
     let corrected = 0;
     let incorrect = 0;
-    for (let answer of answers) {
-      const question = questionsData.find(
-        (question) => question._id === answer.questionId
-      );
-      if (question) {
-        const matchedAnswer = question.answers.find((answer) => answer.correct);
-        if (matchedAnswer && matchedAnswer.answer === answer.answer) {
-          mark += 5;
-          corrected += 1;
-          console.log("Correct answer:", answer.answer);
-        } else {
-          mark > 0 ? (mark -= 1) : (mark = 0);
-          incorrect += 1;
-          console.log("Incorrect answer:", answer.answer);
+    answers.map((answer) => {
+      questionsData.map((question) => {
+        if (answer.questionId === question._id) {
+          const checkedAnswer = question?.answers?.filter(
+            (checkAnswer) => checkAnswer.correct === true
+          );
+          console.log("checkedAnswer:*******************", checkedAnswer);
+          // if (answer === checkedAnswer) {
+          //     mark = mark + 5;
+          //     corrected ++;
+          //     console.log("Correct answer:", answer.answer);
+          // } else {
+          //     mark > 0 ? (mark = mark - 1) : (mark = 0);
+          //     incorrect ++;
+          //     console.log("Incorrect answer:", answer.answer);
+          // }
         }
-      }
-    }
+      });
+    });
+
+    console.log("questionsData", questionsData);
 
     const updatedUser = await userCollection.findByIdAndUpdate(
       id,
-      { $push: { marks: { mark, corrected, incorrect } } },
+      { marks: { mark, corrected, incorrect } },
       { new: true }
     );
-
+    console.log(updatedUser);
     if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res
-      .status(201)
-      .json({
-        message: "marks stored successfully",
-        mark,
-        corrected,
-        incorrect,
-      });
+    res.status(201).json({
+      message: "Marks stored successfully",
+      mark,
+      corrected,
+      incorrect,
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
+
 module.exports = {
   post,
   storeMark,
