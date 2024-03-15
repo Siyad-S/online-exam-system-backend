@@ -1,5 +1,5 @@
 const asyncHandler = require("express-async-handler");
-const collection = require("../models/user");
+const users = require("../models/user");
 const questions = require("../models/question");
 
 //post
@@ -12,44 +12,73 @@ const post = asyncHandler(async (req, res) => {
     } else {
       const data = await collection.create({
         name,
-        email
+        email,
       });
-      res
-        .status(201)
-        .json({ message: "data posted successfully", data});
+      res.status(201).json({ message: "data posted successfully", data });
     }
   } catch (error) {
     console.log(error);
   }
 });
 
-//store marks 
+//store marks
 const storeMark = asyncHandler(async (req, res) => {
-    try {
-      console.log(req.body);
-      const id = req.params.id;
+  try {
+    const { answers } = req.body;
+    const id = req.params.id;
 
-      const questionsData = questions.find()
-      
-
-      const data = await collection.findByIdAndUpdate(
-        id,
-        { ...req.body },
-        { new: true }
+    const questionsData = await questions
+      .aggregate([
+        {
+          $match: { _id: { $in: answers.map((answer) => answer.questionId) } },
+        },
+      ])
+      .toArray();
+    let mark = 0;
+    let corrected = 0;
+    let incorrect = 0;
+    for (let answer of answers) {
+      const question = questionsData.find(
+        (question) => question._id === answer.questionId
       );
-      res
-        .status(201)
-        .json({ message: "marks stored successfully", data });
-  
-      if (!data) {
-        res.status(404).json({ message: "marks couldn't update" });
+      if (question) {
+        const matchedAnswer = question.answers.find((answer) => answer.correct);
+        if (matchedAnswer && matchedAnswer.answer === answer.answer) {
+          mark += 5;
+          corrected += 1;
+          console.log("Correct answer:", answer.answer);
+        } else {
+          mark > 0 ? (mark -= 1) : (mark = 0);
+          incorrect += 1;
+          console.log("Incorrect answer:", answer.answer);
+        }
       }
-    } catch (error) {
-      console.log(error);
     }
-  });
 
+    const updatedUser = await userCollection.findByIdAndUpdate(
+      id,
+      { $push: { marks: { mark, corrected, incorrect } } },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res
+      .status(201)
+      .json({
+        message: "marks stored successfully",
+        mark,
+        corrected,
+        incorrect,
+      });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
 module.exports = {
-    post,
-    storeMark
+  post,
+  storeMark,
 };
