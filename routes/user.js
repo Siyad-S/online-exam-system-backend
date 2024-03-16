@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const {
     post,
-    storeMark
+    storeMark,
 } = require("../controllers/user");
 
 router.route("/").post(post);

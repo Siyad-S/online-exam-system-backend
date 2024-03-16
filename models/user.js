@@ -8,7 +8,7 @@ const schema = mongoose.Schema({
         type: String,
         required: true
     },
-    marks: {}
+    marks: []
 })
 
 const userCollection = mongoose.model("user", schema)
